@@ -1,14 +1,14 @@
 #ifndef MATRIX_KEYBOARD_H
 #define MATRIX_KEYBOARD_H
 
-#include "SimpleArray.h"
+#include "FixedArray.h"
 #include "ShiftRegister.h"
 #include "Button.h"
 
 template<byte WIDTH, byte HEIGHT>
 class MatrixKeyboard {
   public:
-    MatrixKeyboard(const ShiftRegister& columnWriteRegister, const SimpleArray<byte, HEIGHT>& rowReadPins)
+    MatrixKeyboard(const ShiftRegister& columnWriteRegister, const FixedArray<byte, HEIGHT>& rowReadPins)
       : columnWriteRegister(columnWriteRegister)
       , rowReadPins(rowReadPins)
     {
@@ -48,7 +48,7 @@ class MatrixKeyboard {
 
   private:
     Button buttons[WIDTH][HEIGHT];
-    SimpleArray<byte, HEIGHT> rowReadPins;
+    FixedArray<byte, HEIGHT> rowReadPins;
     ShiftRegister columnWriteRegister;
 };
 

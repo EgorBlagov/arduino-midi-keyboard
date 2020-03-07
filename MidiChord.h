@@ -2,12 +2,12 @@
 #define MIDI_CHORD_H
 
 #include "MidiNote.h"
-#include "SimpleArray.h"
+#include "FixedArray.h"
 
 template <byte NOTES_COUNT>
 class Chord : public IPlayable {
   public:
-    Chord(const SimpleArray<note_t, NOTES_COUNT>& notes)
+    Chord(const FixedArray<note_t, NOTES_COUNT>& notes)
     {
       for (byte i = 0; i < NOTES_COUNT; i++) {
         this->notes[i] = Note(notes[i]);
@@ -21,38 +21,35 @@ class Chord : public IPlayable {
     }
 
   private:
-    SimpleArray<Note, NOTES_COUNT> notes;
+    FixedArray<Note, NOTES_COUNT> notes;
 };
 
 template <simple_array_size_t STEPS>
-Chord<STEPS> buildFromStructure(note_t pitch, const SimpleArray<byte, STEPS>& structure, byte offset = 0) {
-  note_t notes[STEPS];
+Chord<STEPS> buildFromStructure(note_t pitch, const FixedArray<byte, STEPS>& structure, byte offset = 0) {
+  FixedArray<note_t, STEPS> notes;
+  
   for (byte i = 0; i < STEPS; i++) {
     const byte octavesShift = (i + offset) / STEPS; // if overflow -- add octave
     const byte index = (i + offset) % STEPS;
     notes[i] = pitch + structure[index] + octavesShift * 12;
   }
-  return Chord<STEPS>(SimpleArray<note_t, STEPS>(notes));
+  return Chord<STEPS>(notes);
 }
 
 Chord<3> buildMaj(note_t pitch, byte offset = 0) {
-  const byte majStructure[] = {0, 4, 7};
-  return buildFromStructure(pitch, SimpleArray<byte, 3>(majStructure), offset);
+  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 4, 7), offset);
 }
 
 Chord<3> buildMin(note_t pitch, byte offset = 0) {
-  const byte minStructure[] = {0, 3, 7};
-  return buildFromStructure(pitch, SimpleArray<byte, 3>(minStructure), offset);
+  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 3, 7), offset);
 }
 
 Chord<4> buildMaj7(note_t pitch, byte offset = 0) {
-  const byte maj7Structure[] = {0, 4, 7, 10};
-  return buildFromStructure(pitch, SimpleArray<byte, 4>(maj7Structure), offset);
+  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 4, 7, 10), offset);
 }
 
 Chord<4> buildMin7(note_t pitch, byte offset = 0) {
-  const byte min7Structure[] = {0, 3, 7, 10};
-  return buildFromStructure(pitch, SimpleArray<byte, 4>(min7Structure), offset);
+  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 3, 7, 10), offset);
 }
 
 

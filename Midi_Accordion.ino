@@ -96,8 +96,7 @@ const ConsoleLogHandler<columns, rows> consoleHandler;
 const IKeyHandler* handler = &midiHandler;
 
 
-byte rowReadPinIds[rows] = {2,3, 4, 5, 6};
-const SimpleArray<byte, rows> rowReadPins(rowReadPinIds);
+const FixedArray<byte, rows> rowReadPins(2, 3, 4, 5, 6);
 const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(7, 9, 8), rowReadPins);
 
 const MatrixHandler<columns, rows> matrixHandler(keyboard, handler);
