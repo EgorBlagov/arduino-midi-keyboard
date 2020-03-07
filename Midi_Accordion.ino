@@ -47,48 +47,56 @@ const IPlayable* musicKeys[] = {
 };
 
 
-const byte playMatrixMap[5][6] = {
-  3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 9, 2, 19, 21, 22, 23, 16, 10, 26, 20, 29, 24, 17, 1, 25, 27, 28, 30, 18
+const byte playMatrixMap[30] = {
+2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 8, 1, 18, 20, 21, 22, 15, 9, 25, 19, 28, 23, 16, 0, 24, 26, 27, 29, 17
+
+  
 };
 
 
 char data[10];
 template<byte WIDTH, byte HEIGHT>
 class ConsoleLogHandler : public IKeyHandler {
+public:
+    ConsoleLogHandler() {
+      Serial.begin(9600);
+    }
     void onPressed(byte x, byte y) {
     
       sprintf(data, "+%d ", y * WIDTH + x);
-      Serial1.print(data);
+      Serial.print(data);
     }
 
     void onReleased(byte x, byte y) {
       sprintf(data, "-%d ", y * WIDTH + x);
-      Serial1.print(data);
+      Serial.print(data);
     }
 };
 
+
+const byte rows = 5;
+const byte columns = 6;
+
+
 class MidiPressHandler : public IKeyHandler {
     void onPressed(byte x, byte y) {
-      musicKeys[playMatrixMap[x][y] - 1]->update(true);
+      musicKeys[playMatrixMap[y*columns+x]]->update(true);
       MidiUSB.flush();
     }
 
     void onReleased(byte x, byte y) {
-      musicKeys[playMatrixMap[x][y] - 1]->update(false);
+      musicKeys[playMatrixMap[y*columns+x]]->update(false);
       MidiUSB.flush();
     }
 };
 
 
-const byte rows = 2;
-const byte columns = 2;
-
-//const MidiPressHandler midiHandler;
+const MidiPressHandler midiHandler;
 const ConsoleLogHandler<columns, rows> consoleHandler;
-const IKeyHandler* handler = &consoleHandler;
+const IKeyHandler* handler = &midiHandler;
 
 
-byte rowReadPinIds[rows] = {4, 5};
+byte rowReadPinIds[rows] = {2,3, 4, 5, 6};
 const SimpleArray<byte, rows> rowReadPins(rowReadPinIds);
 const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(7, 9, 8), rowReadPins);
 
