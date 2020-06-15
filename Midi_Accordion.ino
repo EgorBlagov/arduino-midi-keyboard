@@ -75,7 +75,7 @@ public:
 
 
 const byte rows = 5;
-const byte columns = 6;
+const byte columns = 13;
 
 
 class MidiPressHandler : public IKeyHandler {
@@ -90,14 +90,13 @@ class MidiPressHandler : public IKeyHandler {
     }
 };
 
-
 const MidiPressHandler midiHandler;
 const ConsoleLogHandler<columns, rows> consoleHandler;
-const IKeyHandler* handler = &midiHandler;
+const IKeyHandler* handler = &consoleHandler;
 
 
 const FixedArray<byte, rows> rowReadPins(2, 3, 4, 5, 6);
-const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(7, 9, 8), rowReadPins);
+const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(9, 7, 8), rowReadPins);
 
 const MatrixHandler<columns, rows> matrixHandler(keyboard, handler);
 
