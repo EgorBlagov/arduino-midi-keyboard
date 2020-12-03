@@ -9,10 +9,10 @@ class Note : public IPlayable {
       : Note(0)
     {}
 
-    Note(note_t note)
+    Note(note_t note, channel_t channel=1)
       : note(note)
       , active(false)
-      , channel(0)
+      , channel(channel)
     {}
 
     void update(bool isActive, velocity_t velocity = 64) {
