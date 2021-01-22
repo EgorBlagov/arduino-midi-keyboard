@@ -6,10 +6,10 @@
 class Note : public IPlayable {
   public:
     Note()
-      : Note(0)
+      : Note(0, 0)
     {}
 
-    Note(note_t note, channel_t channel=1)
+    Note(note_t note, channel_t channel)
       : note(note)
       , active(false)
       , channel(channel)

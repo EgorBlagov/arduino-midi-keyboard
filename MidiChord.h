@@ -7,10 +7,10 @@
 template <byte NOTES_COUNT>
 class Chord : public IPlayable {
   public:
-    Chord(const FixedArray<note_t, NOTES_COUNT>& notes)
+    Chord(const FixedArray<note_t, NOTES_COUNT>& notes, channel_t channel)
     {
       for (byte i = 0; i < NOTES_COUNT; i++) {
-        this->notes[i] = Note(notes[i]);
+        this->notes[i] = Note(notes[i], channel);
       }
     }
 
@@ -25,7 +25,7 @@ class Chord : public IPlayable {
 };
 
 template <simple_array_size_t STEPS>
-Chord<STEPS> buildFromStructure(note_t pitch, const FixedArray<byte, STEPS>& structure, byte offset = 0) {
+Chord<STEPS> buildFromStructure(note_t pitch, const FixedArray<byte, STEPS>& structure, channel_t channel, byte offset = 0) {
   FixedArray<note_t, STEPS> notes;
   
   for (byte i = 0; i < STEPS; i++) {
@@ -33,23 +33,23 @@ Chord<STEPS> buildFromStructure(note_t pitch, const FixedArray<byte, STEPS>& str
     const byte index = (i + offset) % STEPS;
     notes[i] = pitch + structure[index] + octavesShift * 12;
   }
-  return Chord<STEPS>(notes);
+  return Chord<STEPS>(notes, channel);
 }
 
-Chord<3> buildMaj(note_t pitch, byte offset = 0) {
-  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 4, 7), offset);
+Chord<3> buildMaj(note_t pitch, channel_t channel, byte offset = 0) {
+  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 4, 7), channel, offset);
 }
 
-Chord<3> buildMin(note_t pitch, byte offset = 0) {
-  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 3, 7), offset);
+Chord<3> buildMin(note_t pitch, channel_t channel, byte offset = 0) {
+  return buildFromStructure(pitch, FixedArray<byte, 3>(0, 3, 7), channel, offset);
 }
 
-Chord<4> buildMaj7(note_t pitch, byte offset = 0) {
-  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 4, 7, 10), offset);
+Chord<4> buildMaj7(note_t pitch, channel_t channel, byte offset = 0) {
+  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 4, 7, 10), channel, offset);
 }
 
-Chord<4> buildMin7(note_t pitch, byte offset = 0) {
-  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 3, 7, 10), offset);
+Chord<4> buildMin7(note_t pitch, channel_t channel, byte offset = 0) {
+  return buildFromStructure(pitch, FixedArray<byte, 4>(0, 3, 7, 10), channel, offset);
 }
 
 
