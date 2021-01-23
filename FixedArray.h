@@ -21,6 +21,10 @@ public:
     return SIZE;
   }
 
+  const emplace(T* targetArray) {
+    memcpy(targetArray, this->data, SIZE);
+  }
+
 private:
   T data[SIZE];
 };
