@@ -13,22 +13,45 @@ const byte sequenceMap[rows][columns] = {
 };
 
 template<byte WIDTH, byte HEIGHT>
-class ConsoleLogHandler : public IKeyHandler {
+class ConsoleLogHandler : public IKeyHandler , public IAnalogHandler {
   public:
-    ConsoleLogHandler() {
-      Serial.begin(9600);
+    ConsoleLogHandler(bool usb)
+      : usb(usb) {
+      this->init();
     }
     void onPressed(byte x, byte y) {
 
       sprintf(data, "+%d ", sequenceMap[y][x]);
-      Serial.print(data);
+      this->print(data);
     }
 
     void onReleased(byte x, byte y) {
       sprintf(data, "-%d ", sequenceMap[y][x]);
-      Serial.print(data);
+      this->print(data);
+    }
+
+    void onUpdate(byte value) {
+      sprintf(data, "a%d ", value);
+      this->print(data);
+    }
+  private:
+    bool usb;
+    void print(char* data) {
+      if (this->usb) {
+        Serial.print(data);
+      } else {
+        Serial1.print(data);
+      }
+    }
+
+    void init() {
+      if (this->usb) {
+        Serial.begin(9600);
+      } else {
+        Serial1.begin(9600);
+      }
     }
 };
 
-const ConsoleLogHandler<columns, rows> consoleHandler;
+const ConsoleLogHandler<columns, rows> consoleHandler(false);
 #endif

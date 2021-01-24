@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "MatrixHandler.h"
+#include "AnalogHandler.h"
 #include "Chord.h"
 #include <PitchToNote.h>
 
@@ -20,8 +21,9 @@ note_t TARGET_KEY = pitchC4;
 
 const byte VOLUME_ID = 1;
 
+//#define DEBUG
 #ifdef DEBUG
-  #include "Debug.h"
+#include "Debug.h"
 #endif
 
 const byte DEFAULT_VELOCITY = 64;
@@ -49,11 +51,12 @@ void setNewKey(note_t targetKey) {
   if (targetKey > MAX_KEY) {
     TARGET_KEY = MAX_KEY;
   } else if (targetKey < MIN_KEY) {
-    TARGET_KEY= MIN_KEY;
+    TARGET_KEY = MIN_KEY;
   } else {
     TARGET_KEY = targetKey;
   }
 }
+
 class ButtonInfo {
   public:
     enum ButtonType {
@@ -175,36 +178,34 @@ const ButtonInfo musicKeys[rows][columns] = {
   }
 };
 
-byte volume = 50;
-class MidiPressHandler : public IKeyHandler {
+class MidiPressHandler : public IKeyHandler, public IAnalogHandler {
     void onPressed(byte x, byte y) {
-      if (y == 0 && x == 12) {
-        setNewKey(TARGET_KEY + 1);
-      } else if (y == 1 && x == 11) {
-        setNewKey(TARGET_KEY - 1);
-      } else {
-        musicKeys[y][x].update(true);
-        MidiUSB.flush();
-      }
+      musicKeys[y][x].update(true);
+      MidiUSB.flush();
     }
 
     void onReleased(byte x, byte y) {
       musicKeys[y][x].update(false);
       MidiUSB.flush();
     }
+
+     void onUpdate(byte value) {
+      setController(CONTROL_CHANNEL, VOLUME_ID, value);
+    }
 };
 
 const MidiPressHandler midiHandler;
-const IKeyHandler* handler = &midiHandler;
-
 const FixedArray<byte, rows> rowReadPins(2, 3, 4, 5, 6);
 const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(9, 7, 8), rowReadPins);
-const MatrixHandler<columns, rows> matrixHandler(keyboard, handler);
+const MatrixHandler<columns, rows> matrixHandler(keyboard, &midiHandler);
+const AnalogReader reader(A0, &midiHandler);
 
 void setup() {
   matrixHandler.onSetup();
+  //  setNewKey(DEFAULT_HARMONY_KEY + 4);
 }
 
 void loop() {
   matrixHandler.onFrame();
+  reader.onFrame();
 }
