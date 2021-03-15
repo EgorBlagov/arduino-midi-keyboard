@@ -11,20 +11,29 @@ class AnalogReader {
     AnalogReader(byte pinId, IAnalogHandler* analogHandler)
       : pinId(pinId)
       , handler(analogHandler)
+      , delay(200)
     {}
 
     void onFrame() {
-      int newValue = analogRead(this->pinId);
-      if (newValue != lastValue) {
-        this->handler->onUpdate(newValue);
-        this->lastValue = newValue;
-      }
+      const auto now = millis();
+        if (now - this->lastPress > this->delay) {
+          int newValue = analogRead(this->pinId);
+          byte newByteValue = newValue / 4;
+          if (newByteValue != lastValue) {
+            this->handler->onUpdate(newByteValue);
+            this->lastValue = newByteValue;
+          }
+          this->lastPress = now;
+        }      
     }
 
   private:
     byte pinId;
     IAnalogHandler* handler;
-    int lastValue;
+    byte lastValue;
+    unsigned long lastPress;
+    word delay;
+    
 };
 
 #endif

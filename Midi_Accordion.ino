@@ -1,8 +1,13 @@
+#include <LiquidCrystal.h>
+
 #include "Common.h"
 #include "MatrixHandler.h"
 #include "AnalogHandler.h"
 #include "Chord.h"
+#include "EncoderHandler.h"
 #include <PitchToNote.h>
+
+const byte NOTE_COUNT = 12;
 
 const byte rows = 5;
 const byte columns = 13;
@@ -19,7 +24,32 @@ const note_t MIN_KEY = pitchC2;
 
 note_t TARGET_KEY = pitchC4;
 
-const byte VOLUME_ID = 1;
+const byte VOLUME_ID = 7;
+const byte ALL_NOTES_OFF = 123;
+
+
+// PIN MAPPING
+
+const byte PIN_ROW_1 = 2;
+const byte PIN_ROW_2 = 3;
+const byte PIN_ROW_3 = 4;
+const byte PIN_ROW_4 = 5;
+const byte PIN_ROW_5 = 6;
+const byte PIN_COL_SHCP = 9;
+const byte PIN_COL_DS = 7;
+const byte PIN_COL_STCP = 8;
+const byte PIN_PEDAL_VALUE = A0;
+const byte PIN_PEDAL_CONNECTED = 16;
+const byte PIN_ENCODER_1 = 0;
+const byte PIN_ENCODER_2 = 1;
+const byte PIN_LCD_RS = A2;
+const byte PIN_LCD_EN = A3;
+const byte PIN_LCD_D4 = A1;
+const byte PIN_LCD_D5 = 10;
+const byte PIN_LCD_D6 = 15;
+const byte PIN_LCD_D7 = 14;
+
+
 
 //#define DEBUG
 #ifdef DEBUG
@@ -37,11 +67,14 @@ void noteOff(note_t note, channel_t channel) {
   MidiUSB.sendMIDI(noteOff);
 }
 
-void setController(channel_t channel, byte id, byte volume) {
-  midiEventPacket_t setVolume = {0x0B, 0xB0 | channel, id, volume};
+void setController(channel_t channel, byte id, byte val) {
+  midiEventPacket_t setVolume = {0x0B, 0xB0 | channel, id, val};
   MidiUSB.sendMIDI(setVolume);
 }
 
+void allNotesOff(channel_t channel) {
+  setController(channel, ALL_NOTES_OFF, 0);
+}
 
 note_t get_note(note_t normal_note) {
   return normal_note + (int)TARGET_KEY - (int)DEFAULT_HARMONY_KEY;
@@ -64,6 +97,7 @@ class ButtonInfo {
       ButtonChordMin,
       ButtonChordMaj7,
       ButtonChordMin7,
+      ButtonOctave,
       ButtonNote,
     };
 
@@ -91,6 +125,10 @@ class ButtonInfo {
           this->count = 4;
           buildFromStructure(_tone, min7Structure, chordOffset).emplace(notes);
           break;
+        case ButtonOctave:
+          this->count = 2;
+          notes[0] = _tone;
+          notes[1] = _tone - 12;
       }
     }
 
@@ -109,14 +147,13 @@ class ButtonInfo {
   private:
     note_t notes[4];
     channel_t mainChannel;
-    byte count;
-
+    byte count; 
 };
 
 const ButtonInfo musicKeys[rows][columns] = {
   {
-    ButtonInfo(pitchE5b, MELODY_CHANNEL),
-    ButtonInfo(pitchA4b, MELODY_CHANNEL),
+    ButtonInfo(pitchE5b, MELODY_CHANNEL, ButtonInfo::ButtonOctave),
+    ButtonInfo(pitchA4b, MELODY_CHANNEL, ButtonInfo::ButtonOctave),
     ButtonInfo(pitchC4, MELODY_CHANNEL),
     ButtonInfo(pitchE4, MELODY_CHANNEL),
     ButtonInfo(pitchG4, MELODY_CHANNEL),
@@ -131,7 +168,7 @@ const ButtonInfo musicKeys[rows][columns] = {
   },
 
   {
-    ButtonInfo(pitchG5b, MELODY_CHANNEL),
+    ButtonInfo(pitchG5b, MELODY_CHANNEL, ButtonInfo::ButtonOctave),
     ButtonInfo(pitchD4, MELODY_CHANNEL),
     ButtonInfo(pitchF4, MELODY_CHANNEL),
     ButtonInfo(pitchA4, MELODY_CHANNEL),
@@ -177,6 +214,10 @@ const ButtonInfo musicKeys[rows][columns] = {
     ButtonInfo(pitchA2, BASS_CHANNEL),
   }
 };
+const Button pedalInUse(PIN_PEDAL_CONNECTED, true);
+const LiquidCrystal lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
+
+char data[16];
 
 class MidiPressHandler : public IKeyHandler, public IAnalogHandler {
     void onPressed(byte x, byte y) {
@@ -189,23 +230,93 @@ class MidiPressHandler : public IKeyHandler, public IAnalogHandler {
       MidiUSB.flush();
     }
 
-     void onUpdate(byte value) {
+    void onUpdate(byte value) {
+      value /= 2; // 0 - 100%
+      sprintf(data, "V %d  ", value);
+      lcd.setCursor(0, 1);
+      lcd.print(data);
       setController(CONTROL_CHANNEL, VOLUME_ID, value);
+      MidiUSB.flush();
     }
+
+
+};
+
+class ScrollLcdHandler : public IEncoderHandler {
+  public:
+    ScrollLcdHandler() {
+      this->updateLcd();
+    }
+
+    void onSetup() {
+      this->updateLcd();
+
+    }
+    void onIncrease() {
+      setNewKey(TARGET_KEY + 1);
+      allNotesOff(MELODY_CHANNEL);
+      allNotesOff(BASS_CHANNEL);
+      allNotesOff(CHORD_CHANNEL);
+      MidiUSB.flush();
+      this->updateLcd();
+    }
+    
+    void onDecrease() {
+      setNewKey(TARGET_KEY - 1);
+      allNotesOff(MELODY_CHANNEL);
+      allNotesOff(BASS_CHANNEL);
+      allNotesOff(CHORD_CHANNEL);
+      MidiUSB.flush();
+      this->updateLcd();
+    }
+
+    void updateLcd() {
+      sprintf(data, "%c%c%d", this->notes[this->getPitchTone()], this->sharps[this->getPitchTone()], this->getPitchOctave());
+      lcd.setCursor(0, 0);
+      lcd.print(data);
+    }
+
+    byte getPitchTone() {
+      return (TARGET_KEY - pitchA0) % NOTE_COUNT;
+    }
+
+    byte getPitchOctave() {
+      return (TARGET_KEY - pitchB0 + NOTE_COUNT - 1) / NOTE_COUNT; // math.ceil
+    }
+
+  private:
+    char notes[12] = "AABCCDDEFFGG";
+    char sharps[12] = " #  # #  # #";
 };
 
 const MidiPressHandler midiHandler;
-const FixedArray<byte, rows> rowReadPins(2, 3, 4, 5, 6);
-const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(9, 7, 8), rowReadPins);
+const FixedArray<byte, rows> rowReadPins(PIN_ROW_1, PIN_ROW_2, PIN_ROW_3, PIN_ROW_4, PIN_ROW_5);
+const MatrixKeyboard<columns, rows> keyboard(ShiftRegister(PIN_COL_SHCP, PIN_COL_DS, PIN_COL_STCP), rowReadPins);
 const MatrixHandler<columns, rows> matrixHandler(keyboard, &midiHandler);
-const AnalogReader reader(A0, &midiHandler);
+const AnalogReader pedalValueReader(PIN_PEDAL_VALUE, &midiHandler);
+
+
+const ScrollLcdHandler encHandler;
+const EncoderReader encReader(PIN_ENCODER_1, PIN_ENCODER_2, &encHandler);
 
 void setup() {
+  lcd.begin(8, 2);
+
   matrixHandler.onSetup();
-  //  setNewKey(DEFAULT_HARMONY_KEY + 4);
+  encReader.onSetup();
+  pedalInUse.onSetup(INPUT_PULLUP);
 }
 
 void loop() {
   matrixHandler.onFrame();
-  reader.onFrame();
+  encReader.onFrame();
+  pedalInUse.onFrame();
+  if (pedalInUse.isPressed()) {
+    pedalValueReader.onFrame();
+  } else if (pedalInUse.justReleased()) {
+    lcd.setCursor(0, 1);
+    lcd.print("        ");
+    setController(CONTROL_CHANNEL, VOLUME_ID, 127);
+    MidiUSB.flush();
+  }
 }

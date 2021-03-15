@@ -7,7 +7,7 @@ class Button {
       Button(0)
     {}
 
-    Button(int pinId, bool inversed = false, int delay = 50)
+    Button(int pinId, bool inversed = false, int delay = 50, bool pullup = false)
       : pinId(pinId)
       , lastPress(0)
       , delay(delay)
@@ -17,8 +17,8 @@ class Button {
       this->buttonState.inversed(inversed);
     }
 
-    void onSetup() {
-      pinMode(this->pinId, INPUT);
+    void onSetup(byte mode=INPUT) {
+      pinMode(this->pinId, mode);
     }
 
     void onFrame() {
